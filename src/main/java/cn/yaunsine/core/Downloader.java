@@ -16,8 +16,9 @@ import java.util.concurrent.*;
  */
 public class Downloader implements DownloaderService{
     public ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    volatile ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(Constant.THREAD_NUM, Constant.THREAD_NUM, 0,
+    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(Constant.THREAD_NUM, Constant.THREAD_NUM, 0,
                                                 TimeUnit.SECONDS, new ArrayBlockingQueue<>(Constant.THREAD_NUM));
+    private CountDownLatch countDownLatch = new CountDownLatch(Constant.THREAD_NUM);
     public void download(String url) {
         // 获取文件名
         String fileName = HttpUtils.getDownloadName(url);
@@ -48,18 +49,23 @@ public class Downloader implements DownloaderService{
             // 切分下载
             ArrayList<Future> list = new ArrayList<>();
             split(url, list);
-            list.forEach(future -> {
-                try {
-                    future.get();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+//            list.forEach(future -> {
+//                try {
+//                    future.get();
+//                } catch (InterruptedException e) {
+//                    throw new RuntimeException(e);
+//                } catch (ExecutionException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            });
 
-
+            countDownLatch.await();
+            if (merge(httpFileName)) {
+                deleteTempFile(httpFileName);
+            }
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
             LogUtils.info("\r");
@@ -70,10 +76,6 @@ public class Downloader implements DownloaderService{
             // 关闭线程池
             executor.shutdownNow();
             threadPoolExecutor.shutdown();
-
-            if (merge(httpFileName)) {
-                deleteTempFile(httpFileName);
-            }
         }
     }
     public void split(String url, ArrayList<Future> futureArrayList) {
@@ -97,7 +99,7 @@ public class Downloader implements DownloaderService{
                 if (startPos != 0) {
                     startPos++;
                 }
-                DownloaderTask downloaderTask = new DownloaderTask(url, startPos, endPos, i);
+                DownloaderTask downloaderTask = new DownloaderTask(url, startPos, endPos, i, countDownLatch);
                 Future<Boolean> future = threadPoolExecutor.submit(downloaderTask);
                 futureArrayList.add(future);
             }
