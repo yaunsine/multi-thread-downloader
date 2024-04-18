@@ -11,6 +11,24 @@ import java.net.URLConnection;
  */
 public class HttpUtils {
     /**
+     * 获取文件大小
+     * @param url
+     * @return
+     * @throws IOException
+     */
+    public static long getContentLength(String url) throws IOException{
+        HttpURLConnection httpURLConnection = null;
+        int contentLength = 0;
+        try {
+            httpURLConnection = getHttpURLConnection(url);
+            contentLength = httpURLConnection.getContentLength();
+        } finally {
+            assert httpURLConnection != null;
+            httpURLConnection.disconnect();
+        }
+        return contentLength;
+    }
+    /**
      * 获取连接对象
      * @param url 文件的地址
      * @return
@@ -21,8 +39,19 @@ public class HttpUtils {
         // 向文件所在服务器发送标识信息
         urlConnection.setRequestProperty("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36");
 
-
         return urlConnection;
+    }
+
+    public static HttpURLConnection getHttpURLConnection(String url, long startPos, long endPos) throws IOException {
+        HttpURLConnection httpURLConnection = getHttpURLConnection(url);
+        LogUtils.info("下载的区间是: {} - {}", startPos, endPos);
+        if (endPos != 0) {
+            httpURLConnection.setRequestProperty("RANGE", "bytes="+startPos+"-"+endPos);
+        } else {
+            httpURLConnection.setRequestProperty("RANGE", "bytes="+startPos+"-");
+        }
+
+        return httpURLConnection;
     }
 
     /**

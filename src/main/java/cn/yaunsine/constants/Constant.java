@@ -13,5 +13,15 @@ public interface Constant {
      */
     double MB = 1024 * 1024;
 
-    int PER_SIZE = 1024 * 100;
+    int PER_SIZE = 1024 * 10;
+
+    /**
+     * 线程数量
+     */
+    int THREAD_NUM = 4;
+    /**
+     * 临时文件后缀
+     */
+    String TEMP_FILE_SUFFIX = ".temp";
+
 }
